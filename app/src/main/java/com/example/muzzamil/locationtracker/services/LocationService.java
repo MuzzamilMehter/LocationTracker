@@ -1,155 +1,157 @@
 package com.example.muzzamil.locationtracker.services;
 
-import android.app.IntentService;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
-import android.location.Criteria;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 
+import com.activeandroid.query.Select;
+import com.example.muzzamil.locationtracker.asynctask.CheckIfForeground;
+import com.example.muzzamil.locationtracker.model.LocationTable;
 
-public class LocationService extends IntentService implements LocationListener {
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.concurrent.ExecutionException;
 
-    final String TAG = "LocationService";
-    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10;
-    private static final long MIN_TIME_BW_UPDATES = 1000;
+public class LocationService extends Service {
+    private static final String TAG = "Location Service";
+    private LocationManager mLocationManager = null;
+    private static final int LOCATION_INTERVAL = 1000;
+    private static final float LOCATION_DISTANCE = 10;
 
-    LocationManager locationManager;
-    Location loc;
 
-    boolean isGPS = false;
-    boolean isNetwork = false;
-    boolean canGetLocation = true;
+    private class LocationListener implements android.location.LocationListener {
+        Location mLastLocation;
 
-    public LocationService() {
-        super("LocationService");
+        public LocationListener(String provider) {
+            Log.e(TAG, "LocationListener " + provider);
+            mLastLocation = new Location(provider);
+        }
+
+        @Override
+        public void onLocationChanged(Location location) {
+            Log.e(TAG, "onLocationChanged: " + location);
+            mLastLocation.set(location);
+            updateTable(location);
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+            Log.e(TAG, "onProviderDisabled: " + provider);
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+            Log.e(TAG, "onProviderEnabled: " + provider);
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            Log.e(TAG, "onStatusChanged: " + provider);
+        }
     }
 
+    LocationListener[] mLocationListeners = new LocationListener[]{
+            new LocationListener(LocationManager.GPS_PROVIDER),
+            new LocationListener(LocationManager.NETWORK_PROVIDER)
+    };
 
     @Override
-    protected void onHandleIntent(Intent intent) {
-        if (intent != null) {
-            canGetLocation = intent.getBooleanExtra("CAN_GET_LOCATION", true);
-        }
-        locationManager = (LocationManager) getSystemService(Service.LOCATION_SERVICE);
-        isGPS = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        isNetwork = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-        if (!isGPS && !isNetwork) {
-            Log.d(TAG, "Connection off");
-            getLastLocation();
-        } else {
-            Log.d(TAG, "Connection on");
-            getLocation();
-        }
+    public IBinder onBind(Intent arg0) {
+        return null;
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.e(TAG, "onStartCommand");
+        super.onStartCommand(intent, flags, startId);
+        return START_STICKY;
     }
 
     @Override
     public void onCreate() {
-        super.onCreate();
-
-
-    }
-
-
-    @Override
-    public void onLocationChanged(Location location) {
-        updateUI(location);
-    }
-
-    @Override
-    public void onStatusChanged(String s, int i, Bundle bundle) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String s) {
-        getLocation();
-    }
-
-    @Override
-    public void onProviderDisabled(String s) {
-        if (locationManager != null) {
-            locationManager.removeUpdates(this);
-        }
-    }
-
-    private void getLocation() {
+        Log.e(TAG, "onCreate");
+        initializeLocationManager();
         try {
-            if (canGetLocation) {
-                Log.d(TAG, "Can get location");
-                if (isGPS) {
-                    // from GPS
-                    Log.d(TAG, "GPS on");
-                    locationManager.requestLocationUpdates(
-                            LocationManager.GPS_PROVIDER,
-                            MIN_TIME_BW_UPDATES,
-                            MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
-
-                    if (locationManager != null) {
-                        loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                        if (loc != null)
-                            updateUI(loc);
-                    }
-                } else if (isNetwork) {
-                    // from Network Provider
-                    Log.d(TAG, "NETWORK_PROVIDER on");
-                    locationManager.requestLocationUpdates(
-                            LocationManager.NETWORK_PROVIDER,
-                            MIN_TIME_BW_UPDATES,
-                            MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
-
-                    if (locationManager != null) {
-                        loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                        if (loc != null)
-                            updateUI(loc);
-                    }
-                } else {
-                    loc.setLatitude(0);
-                    loc.setLongitude(0);
-                    updateUI(loc);
-                }
-            } else {
-                Log.d(TAG, "Can't get location");
-            }
-        } catch (SecurityException e) {
-            e.printStackTrace();
+            mLocationManager.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER, LOCATION_INTERVAL, LOCATION_DISTANCE,
+                    mLocationListeners[1]);
+        } catch (java.lang.SecurityException ex) {
+            Log.i(TAG, "fail to request location update, ignore", ex);
+        } catch (IllegalArgumentException ex) {
+            Log.d(TAG, "network provider does not exist, " + ex.getMessage());
         }
-    }
-
-    private void getLastLocation() {
         try {
-            Criteria criteria = new Criteria();
-            String provider = locationManager.getBestProvider(criteria, false);
-            Location location = locationManager.getLastKnownLocation(provider);
-            Log.d(TAG, provider);
-            Log.d(TAG, location == null ? "NO LastLocation" : location.toString());
-        } catch (SecurityException e) {
-            e.printStackTrace();
+            mLocationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER, LOCATION_INTERVAL, LOCATION_DISTANCE,
+                    mLocationListeners[0]);
+        } catch (java.lang.SecurityException ex) {
+            Log.i(TAG, "fail to request location update, ignore", ex);
+        } catch (IllegalArgumentException ex) {
+            Log.d(TAG, "gps provider does not exist " + ex.getMessage());
         }
     }
-
-    private void updateUI(Location loc) {
-        Log.d(TAG, "updateUI");
-       /* tvLatitude.setText(Double.toString(loc.getLatitude()));
-        tvLongitude.setText(Double.toString(loc.getLongitude()));
-        tvTime.setText(DateFormat.getTimeInstance().format(loc.getTime()));*/
-        Log.d(TAG, loc.getLatitude() + "" + loc.getLongitude());
-    }
-
-   /* @Override
-    public int onStartCommand(@Nullable Intent intent, int flags, int startId) {
-        return START_REDELIVER_INTENT;
-    }*/
 
     @Override
     public void onDestroy() {
+        Log.e(TAG, "onDestroy");
         super.onDestroy();
-        Log.d(TAG,"OnDistory");
-        if (locationManager != null) {
-            locationManager.removeUpdates(this);
+        if (mLocationManager != null) {
+            for (int i = 0; i < mLocationListeners.length; i++) {
+                try {
+                    mLocationManager.removeUpdates(mLocationListeners[i]);
+                } catch (Exception ex) {
+                    Log.i(TAG, "fail to remove location listners, ignore", ex);
+                }
+            }
         }
     }
+
+    private void initializeLocationManager() {
+        Log.e(TAG, "initializeLocationManager");
+        if (mLocationManager == null) {
+            mLocationManager = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
+        }
+    }
+
+    private void updateTable(Location location) {
+        LocationTable locationTable = new LocationTable();
+        locationTable.Latitude = Double.toString(location.getLatitude());
+        locationTable.Longitude = Double.toString(location.getLongitude());
+        DateFormat format = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+        Date date = new Date(location.getTime());
+        String formatted_time = format.format(date);
+        locationTable.Time = formatted_time;
+        locationTable.Speed = Float.toString(location.getSpeed());
+        locationTable.save();
+        Log.d("Speed", Float.toString(location.getSpeed()));
+        String a = Float.toString(location.getSpeed());
+        int size = new Select().from(LocationTable.class).execute().size();
+        Log.d(TAG, "size =" + Integer.toString(size));
+        Log.d(TAG, "Data Saved");
+        try {
+            boolean foregroud = new CheckIfForeground().execute(getApplicationContext()).get();if (foregroud) {
+                Intent intent = new Intent();
+                intent.setAction("LOCATION_UPDATE");
+                intent.putExtra("Latitude", location.getLatitude());
+                intent.putExtra("Longitude", location.getLongitude());
+                intent.putExtra("Time", formatted_time);
+                intent.putExtra("Speed", location.getSpeed());
+                sendBroadcast(intent);
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+
+
+    }
+
+
 }

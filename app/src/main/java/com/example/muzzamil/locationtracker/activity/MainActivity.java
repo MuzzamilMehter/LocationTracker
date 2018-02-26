@@ -16,7 +16,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
 import com.example.muzzamil.locationtracker.R;
-import com.example.muzzamil.locationtracker.services.LocationBackGroundService;
+import com.example.muzzamil.locationtracker.services.LocationService;
 
 import java.util.ArrayList;
 
@@ -60,11 +60,9 @@ public class MainActivity extends AppCompatActivity {
                     canGetLocation = false;
 //                    callServie();
                 }
-            }else {
+            } else {
                 callServie();
             }
-
-
         }
 
     }
@@ -88,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
         alertDialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                startActivity(intent);
+                startActivityForResult(intent, 111);
             }
         });
 
@@ -160,8 +158,28 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 111) {
+            Log.d(TAG, "Connection on");
+            // check permissions
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (permissionsToRequest.size() > 0) {
+                    requestPermissions(permissionsToRequest.toArray(new String[permissionsToRequest.size()]),
+                            ALL_PERMISSIONS_RESULT);
+                    Log.d(TAG, "Permission requests");
+                    canGetLocation = false;
+//                    callServie();
+                }
+            } else {
+                callServie();
+            }
+        }
+    }
+
     private void callServie() {
-        Intent serviceIntent = new Intent(this, LocationBackGroundService.class);
+        Intent serviceIntent = new Intent(this, LocationService.class);
         serviceIntent.putExtra("GPS_FLAG", isGPS);
         serviceIntent.putExtra("NETWORK_FLAG", isNetwork);
         serviceIntent.putExtra("CAN_GET_LOCATION", canGetLocation);

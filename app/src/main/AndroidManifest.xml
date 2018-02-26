@@ -47,9 +47,6 @@
 
         <service
             android:name="com.example.muzzamil.locationtracker.services.LocationService"
-            android:exported="false" />
-        <service
-            android:name="com.example.muzzamil.locationtracker.services.LocationBackGroundService"
             android:enabled="true"
             android:exported="true"/>
     </application>
