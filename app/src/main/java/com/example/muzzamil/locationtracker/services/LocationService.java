@@ -36,6 +36,9 @@ public class LocationService extends Service {
     private static final float LOCATION_DISTANCE = 10;
     final static int myID = 1234;
 
+    /*
+    * Chaecking on location change listner.
+    * */
     private class LocationListener implements android.location.LocationListener {
         Location mLastLocation;
 
@@ -111,6 +114,9 @@ public class LocationService extends Service {
         }
     }
 
+    /*
+    * Foreground service implementation
+    * */
     private void startForegroundMethod() {
 
         Intent notificationIntent = new Intent(this, MainActivity.class);
@@ -120,7 +126,7 @@ public class LocationService extends Service {
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
                 notificationIntent, 0);
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this,"chanal_id")
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "chanal_id")
                 .setContentTitle("Locaiton Tracker")
                 .setContentText("Location Tracker Service")
                 .setSmallIcon(R.mipmap.ic_launcher)
@@ -130,7 +136,7 @@ public class LocationService extends Service {
                 .setOngoing(true);
         Notification notification = builder.build();
         notification.flags |= Notification.FLAG_NO_CLEAR;
-        startForeground(111,notification);
+        startForeground(111, notification);
     }
 
     @Override
@@ -155,6 +161,9 @@ public class LocationService extends Service {
         }
     }
 
+    /*
+    * Update Location in SQLite and send broad cast to update the map and the list view
+    * */
     private void updateTable(Location location) {
         LocationTable locationTable = new LocationTable();
         locationTable.Latitude = Double.toString(location.getLatitude());
@@ -164,6 +173,9 @@ public class LocationService extends Service {
         String formatted_time = format.format(date);
         locationTable.Time = formatted_time;
         locationTable.Speed = Float.toString(location.getSpeed());
+        /*
+        * Save to SQLite
+        * */
         locationTable.save();
         Log.d("Speed", Float.toString(location.getSpeed()));
         String a = Float.toString(location.getSpeed());
@@ -171,13 +183,17 @@ public class LocationService extends Service {
         Log.d(TAG, "size =" + Integer.toString(size));
         Log.d(TAG, "Data Saved");
         try {
-            boolean foregroud = new CheckIfForeground().execute(getApplicationContext()).get();if (foregroud) {
+            boolean foregroud = new CheckIfForeground().execute(getApplicationContext()).get();
+            if (foregroud) {
                 Intent intent = new Intent();
                 intent.setAction("LOCATION_UPDATE");
                 intent.putExtra("Latitude", location.getLatitude());
                 intent.putExtra("Longitude", location.getLongitude());
                 intent.putExtra("Time", formatted_time);
                 intent.putExtra("Speed", location.getSpeed());
+                /*
+                * Update the UI
+                * */
                 sendBroadcast(intent);
             }
         } catch (InterruptedException e) {

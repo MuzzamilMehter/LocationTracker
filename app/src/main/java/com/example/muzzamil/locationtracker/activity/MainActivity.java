@@ -45,7 +45,9 @@ public class MainActivity extends AppCompatActivity {
         permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
         permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         permissionsToRequest = findUnAskedPermissions(permissions);
-
+        /*
+        * Check for permissions
+        * */
         if (!isGPS && !isNetwork) {
             Log.d(TAG, "Connection off");
             showSettingsAlert();
@@ -158,6 +160,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -178,6 +181,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /*
+    * Start Service
+    * */
     private void callServie() {
         Intent serviceIntent = new Intent(this, LocationService.class);
         serviceIntent.putExtra("GPS_FLAG", isGPS);

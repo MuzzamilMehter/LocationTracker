@@ -109,7 +109,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, Locatio
         getActivity().unregisterReceiver(updateLocationReciver);
     }
 
-
+    /*
+    * Update Map from service
+    * */
     @Override
     public void onUpdateLocation(Double latitude, Double longitude, String Date, float speed) {
         LatLng latLang = new LatLng(latitude, longitude);

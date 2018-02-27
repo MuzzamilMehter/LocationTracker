@@ -6,6 +6,8 @@ import com.activeandroid.annotation.Table;
 
 /**
  * Created by muzza on 25-02-2018.
+ *
+ * Active android  (SQLite) class
  */
 
 @Table(name = "LocationTable")

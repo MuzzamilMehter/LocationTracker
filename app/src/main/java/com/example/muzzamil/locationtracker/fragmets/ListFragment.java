@@ -89,7 +89,9 @@ public class ListFragment extends Fragment implements LocationUpdateInterface {
         locationListView.setAdapter(locationAdaptor);
     }*/
 
-
+    /*
+    * Update List from service.
+    * */
     @Override
     public void onUpdateLocation(Double latitude, Double longitude, String Date, float speed) {
         LocationTable locationTable = new LocationTable();
