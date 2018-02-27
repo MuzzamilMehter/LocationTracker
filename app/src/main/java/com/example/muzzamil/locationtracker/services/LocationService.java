@@ -1,15 +1,23 @@
 package com.example.muzzamil.locationtracker.services;
 
+
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
+
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.activeandroid.query.Select;
+import com.example.muzzamil.locationtracker.R;
+import com.example.muzzamil.locationtracker.activity.MainActivity;
 import com.example.muzzamil.locationtracker.asynctask.CheckIfForeground;
 import com.example.muzzamil.locationtracker.model.LocationTable;
 
@@ -18,12 +26,15 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
 
+import static android.provider.ContactsContract.Intents.Insert.ACTION;
+import static com.activeandroid.Cache.getContext;
+
 public class LocationService extends Service {
     private static final String TAG = "Location Service";
     private LocationManager mLocationManager = null;
     private static final int LOCATION_INTERVAL = 1000;
     private static final float LOCATION_DISTANCE = 10;
-
+    final static int myID = 1234;
 
     private class LocationListener implements android.location.LocationListener {
         Location mLastLocation;
@@ -76,6 +87,9 @@ public class LocationService extends Service {
     @Override
     public void onCreate() {
         Log.e(TAG, "onCreate");
+
+
+        startForegroundMethod();
         initializeLocationManager();
         try {
             mLocationManager.requestLocationUpdates(
@@ -95,6 +109,28 @@ public class LocationService extends Service {
         } catch (IllegalArgumentException ex) {
             Log.d(TAG, "gps provider does not exist " + ex.getMessage());
         }
+    }
+
+    private void startForegroundMethod() {
+
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+//        notificationIntent.setAction(ACTION.MAIN_ACTION);
+        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
+                notificationIntent, 0);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this,"chanal_id")
+                .setContentTitle("Locaiton Tracker")
+                .setContentText("Location Tracker Service")
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setBadgeIconType(R.mipmap.ic_launcher)
+                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher))
+                .setContentIntent(pendingIntent)
+                .setOngoing(true);
+        Notification notification = builder.build();
+        notification.flags |= Notification.FLAG_NO_CLEAR;
+        startForeground(111,notification);
     }
 
     @Override
@@ -149,8 +185,6 @@ public class LocationService extends Service {
         } catch (ExecutionException e) {
             e.printStackTrace();
         }
-
-
     }
 
 
