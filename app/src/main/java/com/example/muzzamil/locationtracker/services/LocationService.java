@@ -128,7 +128,7 @@ public class LocationService extends Service {
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "chanal_id")
                 .setContentTitle("Locaiton Tracker")
-                .setContentText("Location Tracker Service")
+                .setContentText("Location Tracker Service Running")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setBadgeIconType(R.mipmap.ic_launcher)
                 .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher))
@@ -184,6 +184,7 @@ public class LocationService extends Service {
         Log.d(TAG, "Data Saved");
         try {
             boolean foregroud = new CheckIfForeground().execute(getApplicationContext()).get();
+
             if (foregroud) {
                 Intent intent = new Intent();
                 intent.setAction("LOCATION_UPDATE");
